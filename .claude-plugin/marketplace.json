@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-skills",
+  "version": "1.0.0",
+  "owner": {
+    "name": "okazakov",
+    "email": "okazakov@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "using-munch-tools",
+      "source": "./using-munch-tools",
+      "description": "Routes native code/doc search through jcodemunch (code) and jdocmunch (docs): a SessionStart voice injection plus a PreToolUse guardrail in observe mode (logs search-style calls, never blocks).",
+      "category": "development"
+    }
+  ]
+}
