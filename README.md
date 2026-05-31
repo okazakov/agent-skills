@@ -1,4 +1,4 @@
-# agent-skills
+# oleg-agent-skills
 
 Personal Claude Code skills and plugins, distributed as a **plugin marketplace**.
 This repo is both the marketplace catalogue (`.claude-plugin/marketplace.json`) and
@@ -7,12 +7,12 @@ the home of the plugins themselves (one subdirectory per plugin).
 ## Use the marketplace
 
 ```
-/plugin marketplace add C:/Git/MyCode/agent-skills
-/plugin install <plugin-name>@agent-skills
+/plugin marketplace add C:/Git/MyCode/oleg-agent-skills
+/plugin install <plugin-name>@oleg-agent-skills
 ```
 
 `/plugin marketplace add` also accepts a git URL (e.g.
-`https://github.com/<you>/agent-skills.git`) once this is pushed to a remote.
+`https://github.com/<you>/oleg-agent-skills.git`) once this is pushed to a remote.
 
 ## Plugins
 
@@ -23,7 +23,7 @@ the home of the plugins themselves (one subdirectory per plugin).
 ## Repo layout
 
 ```
-agent-skills/                        (git repo root = marketplace)
+oleg-agent-skills/                        (git repo root = marketplace)
   .claude-plugin/marketplace.json    catalogue of plugins
   using-munch-tools/                 a plugin (see its own README)
     .claude-plugin/plugin.json
@@ -42,13 +42,13 @@ agent-skills/                        (git repo root = marketplace)
    `<plugin-name>/agents/` - all auto-discovered at the plugin root.
 3. Add an entry to `.claude-plugin/marketplace.json` `plugins[]` with
    `name`, `description`, and `source: "./<plugin-name>"`.
-4. Commit. Consumers run `/plugin marketplace update agent-skills` then
-   `/plugin install <plugin-name>@agent-skills`.
+4. Commit. Consumers run `/plugin marketplace update oleg-agent-skills` then
+   `/plugin install <plugin-name>@oleg-agent-skills`.
 
 ## Notes
 
 - **Node.js** must be on PATH for any plugin whose hooks are Node scripts.
 - Marketplace plugins are COPIED into `~/.claude/plugins/cache/` on install, so a
   `git pull` does not auto-update a consumer - they must bump the plugin `version`
-  and run `/plugin marketplace update agent-skills`.
+  and run `/plugin marketplace update oleg-agent-skills`.
 - All paths use forward slashes (valid on Windows, macOS, and Linux).

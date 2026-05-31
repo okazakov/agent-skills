@@ -38,12 +38,12 @@ username or path - it works on any machine after install.
 From any Claude Code session (the marketplace is the parent repo of this plugin):
 
 ```
-/plugin marketplace add C:/Git/MyCode/agent-skills
-/plugin install using-munch-tools@agent-skills
+/plugin marketplace add C:/Git/MyCode/oleg-agent-skills
+/plugin install using-munch-tools@oleg-agent-skills
 ```
 
 That copies the plugin into `~/.claude/plugins/cache/` and adds
-`"using-munch-tools@agent-skills": true` to `enabledPlugins`. No manual
+`"using-munch-tools@oleg-agent-skills": true` to `enabledPlugins`. No manual
 `settings.json` editing. Plugin hooks MERGE with your existing hooks - nothing you
 already have is disturbed.
 
@@ -58,11 +58,11 @@ Marketplace plugins are COPIED into a cache, so pulling the repo is not enough:
 1. Bump `version` in `using-munch-tools/.claude-plugin/plugin.json` (required - an
    unbumped version is treated as "already latest").
 2. Commit + push (or just commit, for a local marketplace).
-3. In a session: `/plugin marketplace update agent-skills` then
-   `/plugin update using-munch-tools@agent-skills`.
+3. In a session: `/plugin marketplace update oleg-agent-skills` then
+   `/plugin update using-munch-tools@oleg-agent-skills`.
 
 For live iteration without the cache, launch with `claude --plugin-dir
-C:/Git/MyCode/agent-skills/using-munch-tools` (references in place for that session
+C:/Git/MyCode/oleg-agent-skills/using-munch-tools` (references in place for that session
 only).
 
 ## Quiet marker
@@ -94,5 +94,5 @@ manual entries from `~/.claude/settings.json` and optionally delete
 
 ## Uninstall
 
-`/plugin uninstall using-munch-tools@agent-skills` (or disable it in `/plugin`).
+`/plugin uninstall using-munch-tools@oleg-agent-skills` (or disable it in `/plugin`).
 The log and quiet marker in `~/.claude` are left in place.

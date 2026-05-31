@@ -1,4 +1,4 @@
-# agent-skills - agent guide
+# oleg-agent-skills - agent guide
 
 You are working in **a Claude Code plugin marketplace**. This single git repo is
 BOTH the marketplace catalogue and the home of the plugins it serves. People clone
@@ -24,7 +24,7 @@ Read `README.md` (repo overview) and the per-plugin `README.md` for specifics.
 ## Repo layout
 
 ```
-agent-skills/                         repo root = marketplace
+oleg-agent-skills/                         repo root = marketplace
   .claude-plugin/marketplace.json     catalogue: one entry per plugin
   CLAUDE.md                           this guide
   README.md                           human-facing repo overview
@@ -71,8 +71,8 @@ Current plugins: see the table in `README.md`. As of writing: `using-munch-tools
    ```
    `source` is a relative path from `marketplace.json` to the plugin dir.
 4. Validate, commit, done. Consumers then run
-   `/plugin marketplace update agent-skills` and
-   `/plugin install <plugin-name>@agent-skills`.
+   `/plugin marketplace update oleg-agent-skills` and
+   `/plugin install <plugin-name>@oleg-agent-skills`.
 
 ## How to add a skill to an EXISTING plugin
 
@@ -102,21 +102,21 @@ skill-only addition.
 
 ```
 # Install (one-time marketplace add per machine, then install):
-/plugin marketplace add C:/Git/MyCode/agent-skills      # or a git URL once pushed
-/plugin install <plugin-name>@agent-skills
+/plugin marketplace add C:/Git/MyCode/oleg-agent-skills      # or a git URL once pushed
+/plugin install <plugin-name>@oleg-agent-skills
 
 # Live-test a plugin WITHOUT installing (references it in place, this session only):
-claude --plugin-dir C:/Git/MyCode/agent-skills/<plugin-name>
+claude --plugin-dir C:/Git/MyCode/oleg-agent-skills/<plugin-name>
 
 # Update flow (git pull alone does NOT update consumers - plugins are cached):
 #   1. edit files
 #   2. BUMP version in <plugin-name>/.claude-plugin/plugin.json
 #   3. commit
-/plugin marketplace update agent-skills
-/plugin update <plugin-name>@agent-skills
+/plugin marketplace update oleg-agent-skills
+/plugin update <plugin-name>@oleg-agent-skills
 ```
 
-A consumer enabling a plugin gets `"<plugin-name>@agent-skills": true` written to
+A consumer enabling a plugin gets `"<plugin-name>@oleg-agent-skills": true` written to
 `enabledPlugins` in their `settings.json` - that is automatic, do not hand-edit it.
 
 ## Updating: version bump is mandatory
