@@ -1,0 +1,6 @@
+# Normalize line endings across machines. Keep hook scripts and configs LF so the
+# plugin behaves identically on Windows, macOS, and Linux.
+* text=auto eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
