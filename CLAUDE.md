@@ -88,6 +88,18 @@ skill-only addition.
 - Hook event names, matchers, and stdin/stdout JSON are **identical** to
   `settings.json` hooks. SessionStart matcher tokens: `startup|resume|clear|compact`.
   PreToolUse matcher is a regex over the tool name (`Grep|Glob|Bash`).
+- **SessionStart does NOT reach subagents.** Subagent launches fire `SubagentStart`
+  (not SessionStart), and a subagent runs in a fresh context that does NOT inherit
+  the parent's SessionStart `additionalContext`. To inject into subagents, ALSO wire
+  a `SubagentStart` hook (matcher is over `agent_type`; `*` = all). It supports the
+  same `additionalContext` field. If one script serves both events, have it ECHO the
+  triggering `hook_event_name` from stdin back as `hookEventName` - emitting the
+  wrong event name can make the harness ignore the output. PreToolUse, by contrast,
+  DOES fire for subagent tool calls (they carry an `agent_id`). See
+  `using-munch-tools/hooks/munch-inject.js` for the echo pattern.
+- New hooks are picked up reliably only on a SESSION RESTART. `/reload-plugins`
+  updates the parent session, but subagents spawned afterward may still use the
+  hook set snapshotted at parent-session start.
 - A hook script runs from the plugin's CACHE copy
   (`~/.claude/plugins/cache/<id>/`), which is REPLACED on update. So a hook must
   NOT write state (logs, markers, dbs) inside the plugin dir - that data would be

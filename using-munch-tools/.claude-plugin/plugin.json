@@ -1,7 +1,7 @@
 {
   "name": "using-munch-tools",
-  "description": "Routes native code/doc search through jcodemunch (code) and jdocmunch (docs): a SessionStart voice injection plus a PreToolUse guardrail in observe mode (logs search-style calls to ~/.claude/munch-guard.log, never blocks).",
-  "version": "0.1.0",
+  "description": "Routes native code/doc search through jcodemunch (code) and jdocmunch (docs): a SessionStart + SubagentStart voice injection (reaches the main thread and every subagent) plus a PreToolUse guardrail in observe mode (logs search-style calls to ~/.claude/munch-guard.log, never blocks).",
+  "version": "0.2.0",
   "author": {
     "name": "okazakov",
     "email": "okazakov@gmail.com"

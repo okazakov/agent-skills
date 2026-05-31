@@ -1,13 +1,19 @@
 #!/usr/bin/env node
-// munch-inject.js - SessionStart hook (plugin build).
+// munch-inject.js - the voice (plugin build). Wired to BOTH SessionStart and
+// SubagentStart so the injection reaches the main thread AND every spawned
+// subagent (subagents get a fresh context and do NOT inherit the parent's
+// SessionStart injection - they only see their own SubagentStart hooks).
+//
 // Reads the using-munch-tools SKILL.md, wraps it in a pseudo-system frame, and
-// emits it as SessionStart additionalContext so the voice re-fires on
-// startup|clear|compact (survives compaction). Self-targeted harness enforcement.
+// emits it as additionalContext. The output's hookEventName ECHOES the actual
+// event from stdin (SessionStart or SubagentStart) so one script serves both;
+// emitting the wrong event name can make the harness ignore the output.
 //
 // Schema (verified against Claude Code hooks reference - identical for plugin and
-// user-settings hooks):
+// user-settings hooks; both SessionStart and SubagentStart support additionalContext):
+//   stdin  JSON: { "hook_event_name": "SessionStart|SubagentStart", ... }
 //   stdout JSON: { "hookSpecificOutput": {
-//       "hookEventName": "SessionStart", "additionalContext": "<string>" } }
+//       "hookEventName": "<echoed event>", "additionalContext": "<string>" } }
 // Never throws out of the session: any failure exits 0 silently.
 
 'use strict';
@@ -16,6 +22,18 @@ const fs = require('fs');
 const path = require('path');
 
 try {
+  // Echo the actual triggering event back as hookEventName. Default to
+  // SessionStart if stdin is missing/unparseable (this script is only wired to
+  // SessionStart and SubagentStart).
+  let eventName = 'SessionStart';
+  try {
+    const payload = JSON.parse(fs.readFileSync(0, 'utf8') || '{}');
+    if (payload && (payload.hook_event_name === 'SessionStart' ||
+                    payload.hook_event_name === 'SubagentStart')) {
+      eventName = payload.hook_event_name;
+    }
+  } catch (e) { /* keep default */ }
+
   // As a plugin, CLAUDE_PLUGIN_ROOT is the absolute plugin install dir. Fall back
   // to a path relative to this script so it also works as a standalone hook.
   const root = process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '..');
@@ -43,7 +61,7 @@ try {
 
   const out = {
     hookSpecificOutput: {
-      hookEventName: 'SessionStart',
+      hookEventName: eventName,
       additionalContext: additionalContext
     }
   };

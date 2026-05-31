@@ -3,12 +3,18 @@
 Routes native code/doc search through **jcodemunch** (code) and **jdocmunch** (docs).
 Two layers, mirroring the self-targeted enforcement design:
 
-- **Voice** - a SessionStart hook (`munch-inject.js`) that injects an
-  `<EXTREMELY_IMPORTANT>` block (the `using-munch-tools` skill) on
-  `startup|clear|compact`, so it survives compaction.
+- **Voice** - the same `munch-inject.js` injection wired to TWO events:
+  - `SessionStart` (matcher `startup|clear|compact`) - the main thread, re-fired so
+    it survives compaction.
+  - `SubagentStart` (matcher `*`) - EVERY spawned subagent. Subagents get a fresh
+    context and do NOT inherit the parent's SessionStart injection, so without this
+    a subagent would ignore the routing and fall back to native search. The script
+    echoes the triggering event back as `hookEventName` so one script serves both.
 - **Guardrail** - a PreToolUse hook (`munch-guard.js`) on `Grep|Glob|Bash`,
   currently in **OBSERVE mode**: it ALWAYS allows the call and emits NO reminder;
   it only logs search-style calls to `~/.claude/munch-guard.log` for calibration.
+  PreToolUse fires for subagent tool calls too (the call carries an `agent_id`), so
+  the guard already covers subagents.
 
 ## Layout
 
@@ -16,8 +22,8 @@ Two layers, mirroring the self-targeted enforcement design:
 using-munch-tools/                 (plugin root = ${CLAUDE_PLUGIN_ROOT})
   .claude-plugin/plugin.json       manifest (name, version, ...)
   hooks/
-    hooks.json                     declares the two hooks (auto-discovered)
-    munch-inject.js                SessionStart voice
+    hooks.json                     declares the hooks (auto-discovered)
+    munch-inject.js                voice: SessionStart + SubagentStart
     munch-guard.js                 PreToolUse guardrail (observe mode)
   skills/using-munch-tools/SKILL.md  the routing cheat-sheet / Red Flags table
 ```
