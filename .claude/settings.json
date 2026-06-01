@@ -24,6 +24,8 @@
     ]
   },
   "claudeMdExcludes": [
-    "**/oleg-agent-skills/*/**/CLAUDE.md"
+    "**/oleg-agent-skills/*/**/CLAUDE.md",
+    "**/oleg-agent-skills/*/**/CLAUDE.local.md",
+    "**/oleg-agent-skills/*/**/.claude/rules/**"
   ]
 }

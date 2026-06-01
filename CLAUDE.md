@@ -41,12 +41,14 @@ product directory is data. Note `.claude/` is this repo's OWN operational config
 and no `marketplace.json` entry.
 
 As a structural backstop to that behavioral rule, `.claude/settings.json` also
-sets `claudeMdExcludes` with a wildcard that stops the harness from auto-injecting
-any NESTED (product) `CLAUDE.md` while you work here, so you are not even fed them.
-The pattern (`**/oleg-agent-skills/*/**/CLAUDE.md`) deliberately spares the root
-`CLAUDE.md` (the `*/` forces at least one subdirectory, which the root path lacks).
-`claudeMdExcludes` only blocks AUTO-injection; you can still open and edit those
-product files explicitly as data.
+sets `claudeMdExcludes` globs (see that file) that stop the harness from
+auto-injecting nested PRODUCT memory files while you work here: a plugin's own
+`CLAUDE.md`, `CLAUDE.local.md`, and `.claude/rules/**`. Each glob leads with a `*/`
+to force at least one subdirectory, which deliberately spares the repo's OWN root
+`CLAUDE.md` and `.claude/` config. The setting governs only auto-loaded MEMORY
+files, so it does not (and need not) touch `SKILL.md` or READMEs - those are never
+auto-injected, and the voice rule above covers them when you read them on purpose.
+It blocks only AUTO-injection; you can still open and edit any product file as data.
 
 ## Repo layout
 
@@ -95,11 +97,12 @@ Current plugins: see the table in `README.md`. As of writing: `using-munch-tools
      `"command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/my-hook.js\""`.
    - Commands: `<plugin-name>/commands/<name>.md`. Agents:
      `<plugin-name>/agents/<name>.md`.
-   - If the plugin ships its OWN `CLAUDE.md` / `AGENTS.md` (instructions meant for
-     its future host agent, NOT for you), it is already covered by the
-     `claudeMdExcludes` wildcard in `.claude/settings.json`, so a maintaining agent
-     here is not auto-fed it. Add an explicit path there if the wildcard misses it.
-     See "This repo defends itself".
+   - If the plugin ships its OWN `CLAUDE.md` / `CLAUDE.local.md` / `.claude/rules/`
+     (instructions meant for its future host agent, NOT for you), it is already
+     covered by the `claudeMdExcludes` globs in `.claude/settings.json`, so a
+     maintaining agent here is not auto-fed it. Add an explicit path there if a glob
+     misses it. (`AGENTS.md` is not auto-loaded by Claude Code, so it needs no
+     exclude.) See "This repo defends itself".
 3. Register it in `.claude-plugin/marketplace.json` -> append to `plugins[]`:
    ```json
    { "name": "<plugin-name>", "source": "./<plugin-name>",
