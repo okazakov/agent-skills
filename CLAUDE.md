@@ -40,6 +40,14 @@ product directory is data. Note `.claude/` is this repo's OWN operational config
 (its self-defense), NOT a shipped plugin - it has no `.claude-plugin/manifest`
 and no `marketplace.json` entry.
 
+As a structural backstop to that behavioral rule, `.claude/settings.json` also
+sets `claudeMdExcludes` with a wildcard that stops the harness from auto-injecting
+any NESTED (product) `CLAUDE.md` while you work here, so you are not even fed them.
+The pattern (`**/oleg-agent-skills/*/**/CLAUDE.md`) deliberately spares the root
+`CLAUDE.md` (the `*/` forces at least one subdirectory, which the root path lacks).
+`claudeMdExcludes` only blocks AUTO-injection; you can still open and edit those
+product files explicitly as data.
+
 ## Repo layout
 
 ```
@@ -87,6 +95,11 @@ Current plugins: see the table in `README.md`. As of writing: `using-munch-tools
      `"command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/my-hook.js\""`.
    - Commands: `<plugin-name>/commands/<name>.md`. Agents:
      `<plugin-name>/agents/<name>.md`.
+   - If the plugin ships its OWN `CLAUDE.md` / `AGENTS.md` (instructions meant for
+     its future host agent, NOT for you), it is already covered by the
+     `claudeMdExcludes` wildcard in `.claude/settings.json`, so a maintaining agent
+     here is not auto-fed it. Add an explicit path there if the wildcard misses it.
+     See "This repo defends itself".
 3. Register it in `.claude-plugin/marketplace.json` -> append to `plugins[]`:
    ```json
    { "name": "<plugin-name>", "source": "./<plugin-name>",

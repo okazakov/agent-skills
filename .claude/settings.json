@@ -22,5 +22,8 @@
         ]
       }
     ]
-  }
+  },
+  "claudeMdExcludes": [
+    "**/oleg-agent-skills/*/**/CLAUDE.md"
+  ]
 }
