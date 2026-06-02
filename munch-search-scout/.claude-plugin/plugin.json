@@ -1,0 +1,10 @@
+{
+  "name": "munch-search-scout",
+  "description": "Replaces using-munch-tools: forces the main agent to delegate code/doc search to a disposable search-scout subagent (conserving the main context window), with a three-mode switch (nudge/fastpath/hardwall) read from ~/.claude/munch-scout-mode. Enable this OR using-munch-tools, never both.",
+  "version": "0.1.0",
+  "author": {
+    "name": "okazakov",
+    "email": "okazakov@gmail.com"
+  },
+  "license": "MIT"
+}
