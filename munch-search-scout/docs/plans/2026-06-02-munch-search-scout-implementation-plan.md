@@ -1,12 +1,15 @@
 # Implementation plan: `munch-search-scout`
 
-- Status: ready to execute, revision v2
+- Status: ready to execute, revision v3
 - Date: 2026-06-02
 - Design spec: `munch-search-scout/docs/specs/2026-06-02-munch-search-scout-design.md`
-- v2 note: incorporates the plan review (2026-06-02). Changes: PowerShell-correct
-  verification commands; enumerated scout `tools` and inlined mgmt allowlist; arg-aware +
-  fully-qualified classifier; `SessionStart` matcher adds `resume`; real description
-  strings; keep the skill dir name; LF + authoring-convention checks; mode read `.trim()`.
+- v2 note: incorporates the plan review. Changes: enumerated scout `tools` and inlined
+  mgmt allowlist; arg-aware + fully-qualified classifier; `SessionStart` matcher adds
+  `resume`; real description strings; keep the skill dir name; LF + authoring checks.
+- v3 note: the plugin CREATES the mode file itself (default `hardwall`, create-if-absent
+  on SessionStart); the operator edits it with any editor. No operator-facing PowerShell
+  dependency and no UTF-16/encoding handling - the mode file is plain one-word UTF-8.
+  Dev-time verification commands remain (the implementer's, not the operator's).
 
 This plan builds the plugin described in the design spec. Read the spec first; this
 document is the build sequence, not the rationale.
@@ -68,16 +71,24 @@ Each step is independently verifiable. Auto-commit after each completed step.
      `scout-guard.js`.
    Reference scripts with `${CLAUDE_PLUGIN_ROOT}` (exact casing).
 
-5. **Fork `munch-inject.js` -> `scout-inject.js`.** Add: read `munch-scout-mode`
-   (`.trim()`, absent -> `hardwall`); branch on the echoed event (SessionStart = emit
-   ONLY the mode-aware delegation section; SubagentStart = emit ONLY the subagent
-   routing section). Preserve the event-echo, the
-   `CLAUDE_PLUGIN_ROOT || path.join(__dirname,'..')` fallback, and the fail-safe
-   (exit 0 on any error). Keep the skill path `skills/using-munch-tools/SKILL.md`.
+5. **Fork `munch-inject.js` -> `scout-inject.js`.** Add:
+   - **mode-file bootstrap:** on `SessionStart`, create `~/.claude/munch-scout-mode`
+     containing the single word `hardwall` (UTF-8, trailing newline) if it is absent -
+     **create-if-absent only, never overwrite**; on any write error fail silently
+     (exit 0). Resolve the dir via `CLAUDE_CONFIG_DIR || homedir/.claude`.
+   - **mode read** (simple): `readFileSync(...,'utf8').trim().toLowerCase()`, absent or
+     unrecognized -> `hardwall`. No BOM/UTF-16 handling.
+   - **role-aware injection:** branch on the echoed event (SessionStart = emit ONLY the
+     mode-aware delegation section; SubagentStart = emit ONLY the subagent routing
+     section).
+   - Preserve the event-echo, the `CLAUDE_PLUGIN_ROOT || path.join(__dirname,'..')`
+     fallback, the fail-safe (exit 0 on any error), and the skill path
+     `skills/using-munch-tools/SKILL.md`.
 
 6. **Fork `munch-guard.js` -> `scout-guard.js`.** Add:
    - main-vs-subagent gate: if `agent_id` OR `agent_type` present -> allow (exit 0);
-   - read `munch-scout-mode` (`.trim()`, absent -> `hardwall`);
+   - **mode read** (same simple parse as the inject: trim + lowercase, match the three
+     values; absent or unrecognized -> `hardwall`; plain UTF-8, no encoding handling);
    - classify on the **fully-qualified** `mcp__<server>__<tool>` name (not the suffix);
    - the **mgmt allowlist** (inline it, do not cross-reference): `resolve_repo`,
      `index_file`, `index_folder`, `index_repo`, `register_edit`, `invalidate_cache`,
@@ -97,11 +108,13 @@ Each step is independently verifiable. Auto-commit after each completed step.
    tool call -> exit 0 (allow)" guarantee.
 
 7. **Write** `munch-search-scout/README.md`: prerequisites (Node, munch servers); the
-   three modes and how to flip them (the `munch-scout-mode` file, with PowerShell and
-   bash examples); the **mutual-exclusivity** warning and the swap workflow (uninstall
-   `using-munch-tools`, install this; revert by swapping back); the rollback story; and
-   the sharp edge that `hardwall` needs a working scout + munch servers (and how to flip
-   to `nudge` to disable).
+   three modes and how to switch them - **the plugin pre-creates
+   `~/.claude/munch-scout-mode` containing `hardwall`; edit that one-word plain-text
+   (UTF-8) file with any editor to switch modes; no shell command needed; changes take
+   effect on the next session**; the **mutual-exclusivity** warning and the swap workflow
+   (uninstall `using-munch-tools`, install this; revert by swapping back); the rollback
+   story; and the sharp edge that `hardwall` needs a working scout + munch servers (and
+   how to flip to `nudge` to disable). No PowerShell / shell-specific write examples.
 
 8. **Register in the marketplace.** Append to `.claude-plugin/marketplace.json`
    `plugins[]`: `{ name: "munch-search-scout", source: "./munch-search-scout",
@@ -123,8 +136,8 @@ Each step is independently verifiable. Auto-commit after each completed step.
 
 ## Verification (before claiming done)
 
-The repo's working shell is Windows PowerShell 7.x. Commands below are PowerShell; the
-bash-tool equivalents work too. JSON/JS validity:
+These are dev-time checks for the implementer (not an operator workflow). JSON/JS
+validity:
 
 ```
 node -e "JSON.parse(require('fs').readFileSync('.claude-plugin/marketplace.json','utf8'))"
@@ -134,46 +147,54 @@ node --check munch-search-scout/hooks/scout-inject.js
 node --check munch-search-scout/hooks/scout-guard.js
 ```
 
-Hook behavior (PowerShell - set the env var on its own line; bash inline `VAR=... node`
-is a hard parse error in PowerShell, so do NOT use that form):
+Mode-file bootstrap (the v3 behavior): with no file present, a `SessionStart` run of
+`scout-inject.js` must CREATE `~/.claude/munch-scout-mode` containing exactly `hardwall`,
+and a second run with the file present (e.g. containing `nudge`) must leave it
+unchanged.
 
 ```
-# Voice: main-thread delegation message
-$env:CLAUDE_PLUGIN_ROOT = "$PWD/munch-search-scout"
+node -e "f=require('fs');p=require('os').homedir()+'/.claude/munch-scout-mode';f.existsSync(p)&&f.unlinkSync(p)"
 '{"hook_event_name":"SessionStart","source":"startup"}' | node munch-search-scout/hooks/scout-inject.js
-# Voice: subagent routing message (echoes SubagentStart)
+node -e "console.log(JSON.stringify(require('fs').readFileSync(require('os').homedir()+'/.claude/munch-scout-mode','utf8')))"   # -> "hardwall\n"
+```
+
+Voice + guard behavior (set `CLAUDE_PLUGIN_ROOT` in your shell first; set the mode via
+Node so it is shell- and encoding-neutral):
+
+```
+# Voice: SessionStart -> delegation message; SubagentStart -> subagent routing message
+'{"hook_event_name":"SessionStart","source":"startup"}' | node munch-search-scout/hooks/scout-inject.js
 '{"hook_event_name":"SubagentStart","agent_type":"search-scout"}' | node munch-search-scout/hooks/scout-inject.js
 
-# Guard: main-thread munch search DENIED under hardwall (no agent_id/agent_type)
-'hardwall' | Set-Content -NoNewline ~/.claude/munch-scout-mode
+# Set a mode (shell-neutral helper):
+node -e "require('fs').writeFileSync(require('os').homedir()+'/.claude/munch-scout-mode','hardwall')"
+
+# Guard expectations:
+#  - main-thread munch search (no agent_id/agent_type) under hardwall -> deny
 '{"tool_name":"mcp__jcodemunch__search_symbols","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
-# Subagent munch search ALLOWED (agent_id present)
+#  - subagent call (agent_id present) -> allow
 '{"agent_id":"x","agent_type":"search-scout","tool_name":"mcp__jcodemunch__search_symbols","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
-# Main-thread mgmt tool ALLOWED under hardwall
+#  - main-thread mgmt tool -> allow
 '{"tool_name":"mcp__jcodemunch__register_edit","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
-# fastpath: lexical search_symbols ALLOWED, semantic DENIED
-'fastpath' | Set-Content -NoNewline ~/.claude/munch-scout-mode
-'{"tool_name":"mcp__jcodemunch__search_symbols","tool_input":{"semantic":false}}' | node munch-search-scout/hooks/scout-guard.js
-'{"tool_name":"mcp__jcodemunch__search_symbols","tool_input":{"semantic":true}}' | node munch-search-scout/hooks/scout-guard.js
-# nudge: nothing denied
-'nudge' | Set-Content -NoNewline ~/.claude/munch-scout-mode
-'{"tool_name":"Grep","tool_input":{"pattern":"x"}}' | node munch-search-scout/hooks/scout-guard.js
+#  - fastpath (set mode to fastpath): lexical search_symbols allow, semantic:true deny
+#  - nudge (set mode to nudge): nothing denied
 ```
 
-(Single-quoted JSON piped to `node` works in PowerShell 7.x; the JSON arrives with a
-trailing CRLF and parses fine. `Set-Content -NoNewline` avoids a UTF-16/BOM mode file.)
+(Single-quoted JSON piped to `node` works in the dev shell. Use the bash tool if you
+prefer bash quoting.)
 
 LF check: `git ls-files --eol munch-search-scout/` (expect `lf` working-tree eol).
 
 End-to-end (live, no install): launch with
 `claude --plugin-dir C:/Git/MyCode/oleg-agent-skills/munch-search-scout` and confirm:
 
-- the main-thread delegation voice appears at session start (and is the delegation
-  message, NOT the "use munch yourself" cheat-sheet);
+- the mode file is created at `~/.claude/munch-scout-mode` containing `hardwall`;
+- the main-thread delegation voice appears at session start (the delegation message,
+  NOT the "use munch yourself" cheat-sheet);
 - a main-thread search is denied with the scout-dispatch reason;
 - dispatching `search-scout` returns the structured contract;
 - a confident "found nothing" return is accepted (not retried);
-- flipping `munch-scout-mode` to `nudge` stops the blocking.
+- editing the mode file to `nudge` stops the blocking on the next session.
 
 ## Sequencing notes
 

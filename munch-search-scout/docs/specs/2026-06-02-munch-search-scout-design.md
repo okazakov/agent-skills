@@ -10,6 +10,9 @@
   SKILL.md split; honest accounting of destination reads, latency, and lost munch
   session continuity; "no results" treated as a normal outcome; dispatch-tool naming
   kept name-robust.
+- v3 note: the plugin CREATES the mode file itself (default `hardwall`, create-if-absent
+  on SessionStart); the operator edits it with any editor. All operator-facing
+  PowerShell and UTF-16/encoding handling removed - it is a plain one-word UTF-8 file.
 
 ## 1. Context and problem
 
@@ -108,12 +111,17 @@ munch-search-scout/                       (plugin root = ${CLAUDE_PLUGIN_ROOT})
 ### 5.1 Mode config (single source of truth)
 
 - File: `~/.claude/munch-scout-mode` (resolved via `CLAUDE_CONFIG_DIR || ~/.claude`,
-  the same pattern the existing `munch-guard.js` uses). Contents: one word -
-  `nudge` | `fastpath` | `hardwall`. The read **must `.trim()`** (tolerate a trailing
-  newline/CRLF; note Windows PowerShell 5.1 writes UTF-16, so the guard reads as UTF-8
-  and trims defensively). **Absent file means `hardwall`** (the shipped default).
-- Both hooks read it on each invocation. Operators flip modes by writing the word; no
-  script edit, survives plugin-cache wipes.
+  the same pattern the existing `munch-guard.js` uses). A plain one-word UTF-8 text
+  file: `nudge` | `fastpath` | `hardwall`.
+- **The plugin creates this file itself.** On `SessionStart`, `scout-inject.js` writes
+  it pre-filled with the default `hardwall` if it does not already exist
+  (create-if-absent only - it never overwrites, so an operator edit is always
+  preserved; on a write error it fails silently). The operator then edits it with any
+  editor, whenever they want - there is no prescribed shell command. Changes take
+  effect on the next hook invocation (a new session for the voice).
+- The guard and inject read it simply (trim, lowercase, match the three values); an
+  **absent or unrecognized** value falls back to `hardwall`, so correctness never
+  depends on the bootstrap having run. No special encoding handling.
 - Quiet/bypass marker `~/.claude/.munch-scout-quiet`: hard-bypass (guard allows
   silently) for warden re-audits. Names are distinct from the original plugin's
   `munch-guard.log` / `.munch-guard-quiet` to avoid cross-talk during a swap.
