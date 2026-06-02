@@ -1,6 +1,6 @@
 # Design spec: `munch-search-scout`
 
-- Status: approved design (pre-implementation), revision v2
+- Status: approved design (pre-implementation), revision v5
 - Date: 2026-06-02
 - Author: okazakov
 - Supersedes: `using-munch-tools` (this plugin is a replacement superset, not an add-on)
@@ -19,6 +19,11 @@
   (a UTF-16 save fails safe to `hardwall`); clarified `plan_turn`/`resolve_repo`
   scout-vs-main-thread; added named-symbol relationship lookups to the fastpath PINPOINT
   set; guard fail-open-on-unparseable made explicit.
+- v5 note: third review round (independent fresh reviewer). Status line corrected to
+  match the revision; the PreToolUse matcher is now stated in 5.2 (the fork's
+  `Grep|Glob|Bash` alone would leave munch search unguarded); `~/.claude/munch-scout.log`
+  added to the 5.1 state-file list; `get_section_excerpt` added to the scout allowlist to
+  match the fastpath PINPOINT set.
 
 ## 1. Context and problem
 
@@ -138,6 +143,10 @@ munch-search-scout/                       (plugin root = ${CLAUDE_PLUGIN_ROOT})
 - Quiet/bypass marker `~/.claude/.munch-scout-quiet`: hard-bypass (guard allows
   silently) for warden re-audits. Names are distinct from the original plugin's
   `munch-guard.log` / `.munch-guard-quiet` to avoid cross-talk during a swap.
+- Decision log `~/.claude/munch-scout.log` (same `CLAUDE_CONFIG_DIR || ~/.claude`
+  resolution; never the plugin cache dir): the guard appends mode + decision
+  (allow/deny/delegated) per main-thread call. It is the calibration source for the
+  fastpath tuning (section 8) and is append-safe under parallel scouts (section 7).
 
 ### 5.2 Mode semantics (what the GUARD enforces in the MAIN thread)
 
@@ -147,6 +156,11 @@ subagents search directly. The guard classifies on the **fully-qualified**
 `mcp__<server>__<tool>` name, never the bare suffix: tool names collide across the two
 servers (both expose `analyze_perf`, `get_session_stats`, `tune_weights`,
 `check_embedding_drift`), so suffix-only matching would mis-bucket them.
+
+The guard only sees a call if `hooks.json` routes it there: the PreToolUse matcher must
+be `Grep|Glob|Bash|mcp__jcodemunch__.*|mcp__jdocmunch__.*`. The fork source's
+`Grep|Glob|Bash` alone matches no munch tool, which would make `hardwall`/`fastpath`
+inert against munch search - this extension is load-bearing, not optional.
 
 | Mode | Native search (Grep/Glob/search-Bash) | munch search/retrieval tools | munch session/index mgmt tools |
 |---|---|---|---|
@@ -225,8 +239,8 @@ plus `Read` - structurally excluding impact/refactor/health/diagram/mutation too
   `check_references`, `find_implementations`, `get_call_hierarchy`,
   `get_class_hierarchy`, `suggest_queries`, `resolve_repo`, `plan_turn`.
 - jdocmunch: `search_sections`, `search_titles`, `get_toc`, `get_toc_tree`,
-  `get_section`, `get_sections`, `get_section_context`, `get_document_outline`,
-  `get_related_sections`, `lookup_term`, `find_code_examples`.
+  `get_section`, `get_sections`, `get_section_excerpt`, `get_section_context`,
+  `get_document_outline`, `get_related_sections`, `lookup_term`, `find_code_examples`.
 - `Read`.
 - Note: `resolve_repo` and `plan_turn` appear here for the scout even though they are
   denied to the searchless main thread (section 5.2). Inside a fresh per-query scout

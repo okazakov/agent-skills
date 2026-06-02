@@ -1,6 +1,6 @@
 # Implementation plan: `munch-search-scout`
 
-- Status: ready to execute, revision v3
+- Status: ready to execute, revision v5
 - Date: 2026-06-02
 - Design spec: `munch-search-scout/docs/specs/2026-06-02-munch-search-scout-design.md`
 - v2 note: incorporates the plan review. Changes: enumerated scout `tools` and inlined
@@ -16,6 +16,10 @@
   `hardwall\n`; step 6 states the fail-open-on-unparseable decision; step 3 pastes the
   scout `tools` list from spec 5.4 verbatim; verification drops the `CLAUDE_PLUGIN_ROOT`
   prerequisite (the `__dirname/..` fallback covers repo-root runs).
+- v5 note: third review round. Status line synced to the current revision; the spec's
+  5.4 scout `tools` list now includes `get_section_excerpt` (pasted verbatim per step 3).
+  No other plan changes - the PreToolUse matcher and `~/.claude/munch-scout.log` were
+  already specified in steps 4 and 6.
 
 This plan builds the plugin described in the design spec. Read the spec first; this
 document is the build sequence, not the rationale.
