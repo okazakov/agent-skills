@@ -1,6 +1,6 @@
 # Implementation plan: `munch-search-scout`
 
-- Status: ready to execute, revision v5
+- Status: ready to execute, revision v6
 - Date: 2026-06-02
 - Design spec: `munch-search-scout/docs/specs/2026-06-02-munch-search-scout-design.md`
 - v2 note: incorporates the plan review. Changes: enumerated scout `tools` and inlined
@@ -20,6 +20,11 @@
   5.4 scout `tools` list now includes `get_section_excerpt` (pasted verbatim per step 3).
   No other plan changes - the PreToolUse matcher and `~/.claude/munch-scout.log` were
   already specified in steps 4 and 6.
+- v6 note: plan-vs-spec review round (two independent reviewers). Verification commands
+  switched to the portable `echo '<json>' | node` form (a bare `'<json>' | node` fails in
+  bash - verified - while `echo` works in both bash and PowerShell); the mgmt allowlist
+  now enumerates the real jdocmunch verbs (which differ from jcodemunch's) and notes they
+  are absent from the scout; status synced.
 
 This plan builds the plugin described in the design spec. Read the spec first; this
 document is the build sequence, not the rationale.
@@ -108,11 +113,16 @@ Each step is independently verifiable. Auto-commit after each completed step.
    - **mode read** (same simple parse as the inject: trim + lowercase, match the three
      values; absent or unrecognized -> `hardwall`; plain UTF-8, no encoding handling);
    - classify on the **fully-qualified** `mcp__<server>__<tool>` name (not the suffix);
-   - the **mgmt allowlist** (inline it, do not cross-reference): `resolve_repo`,
-     `index_file`, `index_folder`, `index_repo`, `register_edit`, `invalidate_cache`,
-     `announce_model`, `set_tool_tier`, `embed_repo` (jcodemunch + jdocmunch index/mgmt
-     equivalents) -> always allow in main thread. `plan_turn`, `get_session_context`,
-     `get_session_stats` are NOT allowlisted (denied under fastpath/hardwall);
+   - the **mgmt allowlist** (inline it, do not cross-reference), fully qualified -> always
+     allow in main thread: the jcodemunch verbs `resolve_repo`, `index_file`,
+     `index_folder`, `index_repo`, `register_edit`, `invalidate_cache`, `announce_model`,
+     `set_tool_tier`, `embed_repo`, PLUS the jdocmunch verbs (differently named - jdocmunch
+     does NOT share jcodemunch's names): `mcp__jdocmunch__index_local`, `doc_index_repo`,
+     `delete_index`, `verify_index`, `define_repo_group` (this is what lets `/j-index`
+     reindex docs under hardwall). These mgmt tools are deliberately absent from the
+     scout's retrieval allowlist (the scout never does index mgmt). `plan_turn`,
+     `get_session_context`, `get_session_stats` are NOT allowlisted (denied under
+     fastpath/hardwall);
    - the **arg-aware** `fastpath` broad/pinpoint split per spec 5.2 (inspect
      `tool_input.semantic` for `search_symbols`; PINPOINT vs BROAD lists);
    - `hardwall`: deny all non-allowlisted munch search + native search;
@@ -172,7 +182,7 @@ unchanged.
 
 ```
 node -e "f=require('fs');p=require('os').homedir()+'/.claude/munch-scout-mode';f.existsSync(p)&&f.unlinkSync(p)"
-'{"hook_event_name":"SessionStart","source":"startup"}' | node munch-search-scout/hooks/scout-inject.js
+echo '{"hook_event_name":"SessionStart","source":"startup"}' | node munch-search-scout/hooks/scout-inject.js
 node -e "console.log(JSON.stringify(require('fs').readFileSync(require('os').homedir()+'/.claude/munch-scout-mode','utf8')))"   # -> "hardwall\n"
 ```
 
@@ -182,25 +192,26 @@ var is needed; set the mode via Node so it is shell- and encoding-neutral):
 
 ```
 # Voice: SessionStart -> delegation message; SubagentStart -> subagent routing message
-'{"hook_event_name":"SessionStart","source":"startup"}' | node munch-search-scout/hooks/scout-inject.js
-'{"hook_event_name":"SubagentStart","agent_type":"search-scout"}' | node munch-search-scout/hooks/scout-inject.js
+echo '{"hook_event_name":"SessionStart","source":"startup"}' | node munch-search-scout/hooks/scout-inject.js
+echo '{"hook_event_name":"SubagentStart","agent_type":"search-scout"}' | node munch-search-scout/hooks/scout-inject.js
 
 # Set a mode (shell-neutral helper; matches the bootstrap's `hardwall\n` form):
 node -e "require('fs').writeFileSync(require('os').homedir()+'/.claude/munch-scout-mode','hardwall\n')"
 
 # Guard expectations:
 #  - main-thread munch search (no agent_id/agent_type) under hardwall -> deny
-'{"tool_name":"mcp__jcodemunch__search_symbols","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
+echo '{"tool_name":"mcp__jcodemunch__search_symbols","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
 #  - subagent call (agent_id present) -> allow
-'{"agent_id":"x","agent_type":"search-scout","tool_name":"mcp__jcodemunch__search_symbols","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
+echo '{"agent_id":"x","agent_type":"search-scout","tool_name":"mcp__jcodemunch__search_symbols","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
 #  - main-thread mgmt tool -> allow
-'{"tool_name":"mcp__jcodemunch__register_edit","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
+echo '{"tool_name":"mcp__jcodemunch__register_edit","tool_input":{}}' | node munch-search-scout/hooks/scout-guard.js
 #  - fastpath (set mode to fastpath): lexical search_symbols allow, semantic:true deny
 #  - nudge (set mode to nudge): nothing denied
 ```
 
-(Single-quoted JSON piped to `node` works in the dev shell. Use the bash tool if you
-prefer bash quoting.)
+(The `echo '<json>' | node` form is portable - verified in both PowerShell and bash. A
+bare `'<json>' | node` works only in PowerShell, not bash, which is why `echo` is used
+throughout.)
 
 LF check: `git ls-files --eol munch-search-scout/` (expect `lf` working-tree eol).
 

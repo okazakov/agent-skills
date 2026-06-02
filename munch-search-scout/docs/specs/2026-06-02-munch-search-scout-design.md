@@ -1,6 +1,6 @@
 # Design spec: `munch-search-scout`
 
-- Status: approved design (pre-implementation), revision v5
+- Status: approved design (pre-implementation), revision v6
 - Date: 2026-06-02
 - Author: okazakov
 - Supersedes: `using-munch-tools` (this plugin is a replacement superset, not an add-on)
@@ -24,6 +24,11 @@
   `Grep|Glob|Bash` alone would leave munch search unguarded); `~/.claude/munch-scout.log`
   added to the 5.1 state-file list; `get_section_excerpt` added to the scout allowlist to
   match the fastpath PINPOINT set.
+- v6 note: plan-vs-spec review round (two independent reviewers). Enumerated the real
+  jdocmunch mgmt verbs in 5.2 (jdocmunch does NOT share jcodemunch's mgmt names, so
+  `/j-index`'s `index_local` must be explicitly allowlisted or it breaks under hardwall);
+  made 5.4 the canonical scout-tools home (removed the circular "pinned in the plan"
+  reference).
 
 ## 1. Context and problem
 
@@ -172,8 +177,12 @@ inert against munch search - this extension is load-bearing, not optional.
 both servers where applicable:
 `mcp__jcodemunch__resolve_repo`, `..._index_file`, `..._index_folder`, `..._index_repo`,
 `..._register_edit`, `..._invalidate_cache`, `..._announce_model`, `..._set_tool_tier`,
-`..._embed_repo` (and the jdocmunch index/management equivalents). These keep the main
-agent's index hygiene working after edits. Everything else under the
+`..._embed_repo`; plus the jdocmunch index/mgmt verbs, which are **differently named**
+(jdocmunch does not share jcodemunch's mgmt names): `mcp__jdocmunch__index_local`,
+`..._doc_index_repo`, `..._delete_index`, `..._verify_index`, `..._define_repo_group`.
+These keep the main agent's index hygiene working after edits - notably `/j-index`, which
+calls `mcp__jdocmunch__index_local` and `mcp__jcodemunch__index_folder` and would be
+denied under hardwall/fastpath if the jdocmunch verb were not allowlisted. Everything else under the
 `mcp__jcodemunch__*` / `mcp__jdocmunch__*` namespaces is treated as search/retrieval
 (default-deny is the safe direction: a new munch search tool is delegated, not leaked).
 
@@ -231,7 +240,8 @@ repo's own `SubagentStart *` self-defense voice; both fire, which is harmless.)
 Frontmatter: `name: search-scout`, a `description`, `model: sonnet`, and a comma-
 separated `tools` allowlist enumerated to **retrieval/navigation/relationship** tools
 plus `Read` - structurally excluding impact/refactor/health/diagram/mutation tools and
-`Agent`. Representative allowlist (final list pinned in the implementation plan):
+`Agent`. This is the **canonical** allowlist - the implementation pastes it verbatim into
+the scout frontmatter, and the plan references this list rather than re-enumerating it:
 
 - jcodemunch: `search_symbols`, `search_text`, `search_ast`, `get_file_outline`,
   `get_file_content`, `get_repo_outline`, `get_file_tree`, `get_symbol_source`,
