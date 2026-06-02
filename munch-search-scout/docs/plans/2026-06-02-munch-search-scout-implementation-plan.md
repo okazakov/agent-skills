@@ -10,6 +10,12 @@
   on SessionStart); the operator edits it with any editor. No operator-facing PowerShell
   dependency and no UTF-16/encoding handling - the mode file is plain one-word UTF-8.
   Dev-time verification commands remain (the implementer's, not the operator's).
+- v4 note: second review round. Bootstrap uses exclusive-create `wx`, runs in its own
+  try/catch that CONTINUES (never exits, so the voice is never suppressed), and is gated
+  to the `SessionStart` event; dev mode-set helper and bootstrap readback aligned on
+  `hardwall\n`; step 6 states the fail-open-on-unparseable decision; step 3 pastes the
+  scout `tools` list from spec 5.4 verbatim; verification drops the `CLAUDE_PLUGIN_ROOT`
+  prerequisite (the `__dirname/..` fallback covers repo-root runs).
 
 This plan builds the plugin described in the design spec. Read the spec first; this
 document is the build sequence, not the rationale.
@@ -54,12 +60,14 @@ Each step is independently verifiable. Auto-commit after each completed step.
 
 3. **Author the scout** `munch-search-scout/agents/search-scout.md`:
    - frontmatter `name: search-scout`, a real `description`, `model: sonnet`, and a
-     comma-separated `tools` allowlist enumerated to the retrieval/navigation/
-     relationship tools + `Read` from spec 5.4. Confirm each tool ID against the live
-     tool names; remember `get_section` and the other doc tools are
-     `mcp__jdocmunch__*`, the rest `mcp__jcodemunch__*`. Do NOT include `Agent`,
-     `index_*`, `register_edit`, `invalidate_cache`, `embed_repo`, `set_tool_tier`, or
-     any impact/refactor/health/diagram tool.
+     comma-separated `tools` allowlist. **Paste the exact allow list from spec 5.4 (the
+     jcodemunch list + the jdocmunch list + `Read`) verbatim into the frontmatter - do
+     not re-derive it.** Confirm each tool ID against the live tool names; remember
+     `get_section` and the other doc tools are `mcp__jdocmunch__*`, the rest
+     `mcp__jcodemunch__*`. `resolve_repo`/`plan_turn` are intentionally in the scout
+     list though denied to the main thread (see the spec 5.4 note). Do NOT include
+     `Agent`, `index_*`, `register_edit`, `invalidate_cache`, `embed_repo`,
+     `set_tool_tier`, or any impact/refactor/health/diagram tool.
    - system prompt per spec 5.4 (restate goal, retrieval+reduction only, iterate
      internally, "found nothing" is a valid answer, the return contract, be terse).
 
@@ -72,10 +80,14 @@ Each step is independently verifiable. Auto-commit after each completed step.
    Reference scripts with `${CLAUDE_PLUGIN_ROOT}` (exact casing).
 
 5. **Fork `munch-inject.js` -> `scout-inject.js`.** Add:
-   - **mode-file bootstrap:** on `SessionStart`, create `~/.claude/munch-scout-mode`
-     containing the single word `hardwall` (UTF-8, trailing newline) if it is absent -
-     **create-if-absent only, never overwrite**; on any write error fail silently
-     (exit 0). Resolve the dir via `CLAUDE_CONFIG_DIR || homedir/.claude`.
+   - **mode-file bootstrap:** gated on the echoed `SessionStart` event ONLY (never on
+     `SubagentStart`), write `~/.claude/munch-scout-mode` as `hardwall\n` using an
+     exclusive-create write - `fs.writeFileSync(path, 'hardwall\n', { flag: 'wx' })` - so
+     it creates the file only when absent and never overwrites an operator edit (also
+     makes the `resume` re-fire a no-op, and is race-safe). Wrap it in its OWN try/catch
+     that swallows any error (already-exists, read-only dir) and **continues to the
+     injection** - it must NOT `exit` or otherwise suppress the delegation voice. Resolve
+     the dir via `CLAUDE_CONFIG_DIR || homedir/.claude`.
    - **mode read** (simple): `readFileSync(...,'utf8').trim().toLowerCase()`, absent or
      unrecognized -> `hardwall`. No BOM/UTF-16 handling.
    - **role-aware injection:** branch on the echoed event (SessionStart = emit ONLY the
@@ -86,7 +98,9 @@ Each step is independently verifiable. Auto-commit after each completed step.
      `skills/using-munch-tools/SKILL.md`.
 
 6. **Fork `munch-guard.js` -> `scout-guard.js`.** Add:
-   - main-vs-subagent gate: if `agent_id` OR `agent_type` present -> allow (exit 0);
+   - main-vs-subagent gate: if `agent_id` OR `agent_type` present -> allow (exit 0). If
+     neither field parses (malformed/absent), **fail open (allow)** per spec 6.1 - do
+     not "tighten" this to deny-on-unparseable;
    - **mode read** (same simple parse as the inject: trim + lowercase, match the three
      values; absent or unrecognized -> `hardwall`; plain UTF-8, no encoding handling);
    - classify on the **fully-qualified** `mcp__<server>__<tool>` name (not the suffix);
@@ -158,16 +172,17 @@ node -e "f=require('fs');p=require('os').homedir()+'/.claude/munch-scout-mode';f
 node -e "console.log(JSON.stringify(require('fs').readFileSync(require('os').homedir()+'/.claude/munch-scout-mode','utf8')))"   # -> "hardwall\n"
 ```
 
-Voice + guard behavior (set `CLAUDE_PLUGIN_ROOT` in your shell first; set the mode via
-Node so it is shell- and encoding-neutral):
+Voice + guard behavior (run from the repo root - `scout-inject.js`'s
+`CLAUDE_PLUGIN_ROOT || __dirname/..` fallback then resolves the plugin root, so no env
+var is needed; set the mode via Node so it is shell- and encoding-neutral):
 
 ```
 # Voice: SessionStart -> delegation message; SubagentStart -> subagent routing message
 '{"hook_event_name":"SessionStart","source":"startup"}' | node munch-search-scout/hooks/scout-inject.js
 '{"hook_event_name":"SubagentStart","agent_type":"search-scout"}' | node munch-search-scout/hooks/scout-inject.js
 
-# Set a mode (shell-neutral helper):
-node -e "require('fs').writeFileSync(require('os').homedir()+'/.claude/munch-scout-mode','hardwall')"
+# Set a mode (shell-neutral helper; matches the bootstrap's `hardwall\n` form):
+node -e "require('fs').writeFileSync(require('os').homedir()+'/.claude/munch-scout-mode','hardwall\n')"
 
 # Guard expectations:
 #  - main-thread munch search (no agent_id/agent_type) under hardwall -> deny

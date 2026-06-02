@@ -13,6 +13,12 @@
 - v3 note: the plugin CREATES the mode file itself (default `hardwall`, create-if-absent
   on SessionStart); the operator edits it with any editor. All operator-facing
   PowerShell and UTF-16/encoding handling removed - it is a plain one-word UTF-8 file.
+- v4 note: second review round. Bootstrap hardened (exclusive-create `wx`; its own
+  try/catch that CONTINUES rather than exits; gated to the `SessionStart` event only);
+  documented that `.trim()` already absorbs a UTF-8 BOM so no encoding code is needed
+  (a UTF-16 save fails safe to `hardwall`); clarified `plan_turn`/`resolve_repo`
+  scout-vs-main-thread; added named-symbol relationship lookups to the fastpath PINPOINT
+  set; guard fail-open-on-unparseable made explicit.
 
 ## 1. Context and problem
 
@@ -113,15 +119,22 @@ munch-search-scout/                       (plugin root = ${CLAUDE_PLUGIN_ROOT})
 - File: `~/.claude/munch-scout-mode` (resolved via `CLAUDE_CONFIG_DIR || ~/.claude`,
   the same pattern the existing `munch-guard.js` uses). A plain one-word UTF-8 text
   file: `nudge` | `fastpath` | `hardwall`.
-- **The plugin creates this file itself.** On `SessionStart`, `scout-inject.js` writes
-  it pre-filled with the default `hardwall` if it does not already exist
-  (create-if-absent only - it never overwrites, so an operator edit is always
-  preserved; on a write error it fails silently). The operator then edits it with any
-  editor, whenever they want - there is no prescribed shell command. Changes take
-  effect on the next hook invocation (a new session for the voice).
-- The guard and inject read it simply (trim, lowercase, match the three values); an
-  **absent or unrecognized** value falls back to `hardwall`, so correctness never
-  depends on the bootstrap having run. No special encoding handling.
+- **The plugin creates this file itself.** Gated on the echoed `SessionStart` event
+  only (never on `SubagentStart`), `scout-inject.js` writes the file pre-filled with
+  `hardwall\n` using an exclusive-create write -
+  `writeFileSync(path, 'hardwall\n', { flag: 'wx' })` - so it creates the file only when
+  absent and can never overwrite an operator edit (this also makes the `resume` re-fire
+  a no-op and is race-safe). The write is wrapped in its OWN try/catch that swallows any
+  error (already-exists, read-only dir) and **falls through to the injection** - the
+  bootstrap must never `exit` or otherwise suppress the delegation voice. The operator
+  then edits the file with any editor, whenever they want; there is no prescribed shell
+  command. Changes take effect on the next hook invocation (a new session for the voice).
+- The guard and inject read it simply (`trim().toLowerCase()`, match the three values);
+  an **absent or unrecognized** value falls back to `hardwall`, so correctness never
+  depends on the bootstrap having run. No special encoding handling is needed: `.trim()`
+  already absorbs a leading UTF-8 BOM (verified) and trailing CRLF, so a file saved by
+  any common editor reads correctly; a UTF-16-saved file would not match and falls back
+  to the safe `hardwall` default.
 - Quiet/bypass marker `~/.claude/.munch-scout-quiet`: hard-bypass (guard allows
   silently) for warden re-audits. Names are distinct from the original plugin's
   `munch-guard.log` / `.munch-guard-quiet` to avoid cross-talk during a swap.
@@ -160,8 +173,10 @@ for the tunable.
 inspects `tool_input`, not just the name:
 
 - PINPOINT (allowed): `search_symbols` only when `tool_input.semantic` is not `true`
-  (lexical, the default), `get_symbol_source`, `get_file_outline`, `find_references`,
-  `get_context_bundle`; doc side `get_section`, `get_sections`, `get_section_excerpt`.
+  (lexical, the default), `get_symbol_source`, `get_file_outline`, `get_context_bundle`,
+  and the named-symbol relationship lookups `find_references`, `find_importers`,
+  `check_references`, `get_call_hierarchy`, `find_implementations`; doc side
+  `get_section`, `get_sections`, `get_section_excerpt`.
 - BROAD (denied): `get_file_tree`, `get_repo_outline`, `get_repo_map`, `search_text`,
   `search_ast`, `search_symbols` with `semantic: true`; doc side `search_sections`,
   `search_titles`, `get_toc`, `get_toc_tree`.
@@ -213,6 +228,11 @@ plus `Read` - structurally excluding impact/refactor/health/diagram/mutation too
   `get_section`, `get_sections`, `get_section_context`, `get_document_outline`,
   `get_related_sections`, `lookup_term`, `find_code_examples`.
 - `Read`.
+- Note: `resolve_repo` and `plan_turn` appear here for the scout even though they are
+  denied to the searchless main thread (section 5.2). Inside a fresh per-query scout
+  they are legitimate session warmup/routing; on the main thread `plan_turn` would leak
+  a retrieval signal. `resolve_repo` also appears in the main-thread mgmt allowlist
+  (5.2) - that dual listing is intentional, not a copy error.
 - Excluded structurally: `get_blast_radius`, `get_impact_preview`, `plan_refactoring`,
   `get_extraction_candidates`, `find_dead_code` / `get_dead_code_v2`, `get_*_risk`,
   `get_hotspots`, `get_churn_rate`, `render_diagram`, `analyze_perf`, `tune_weights`,
