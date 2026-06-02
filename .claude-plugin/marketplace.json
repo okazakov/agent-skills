@@ -12,6 +12,12 @@
       "source": "./using-munch-tools",
       "description": "Routes native code/doc search through jcodemunch (code) and jdocmunch (docs): a SessionStart voice injection plus a PreToolUse guardrail in observe mode (logs search-style calls, never blocks).",
       "category": "development"
+    },
+    {
+      "name": "munch-search-scout",
+      "source": "./munch-search-scout",
+      "description": "Replaces using-munch-tools: forces the main agent to delegate code/doc search to a disposable search-scout subagent (conserving the main context window) via a nudge/fastpath/hardwall mode switch. Enable this OR using-munch-tools, never both.",
+      "category": "development"
     }
   ]
 }
