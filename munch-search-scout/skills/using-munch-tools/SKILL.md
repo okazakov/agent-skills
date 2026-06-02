@@ -12,11 +12,12 @@ receives the routing half. Read the half that was injected for you.
 <!-- SCOUT:DELEGATION:COMMON:START -->
 ## Main-thread search delegation
 
-You do NOT search code or docs yourself on the main thread. Hand the GOAL to the
-`search-scout` subagent (dispatch it with your subagent-dispatch tool - the
-`Agent` / `Task` tool). The scout runs the entire multi-step retrieval in its own
-disposable context and returns only the distillate, so the search churn (file
-listings, rejected matches, dead-end queries) never lands in your context window.
+You have a disposable `search-scout` subagent: hand it a search GOAL and it runs
+the entire multi-step retrieval in its own context, returning only the distillate
+so the search churn (file listings, rejected matches, dead-end queries) never
+lands in your context window. How strongly you are expected to delegate (versus
+search directly) depends on the active mode, stated at the end of this rule.
+Dispatch the scout with your subagent-dispatch tool (the `Agent` / `Task` tool).
 
 How to delegate:
 - Give the scout a GOAL ("find where X is implemented", "what docs cover Y"), not
@@ -52,10 +53,11 @@ You may still do these yourself (no scout needed):
 <!-- SCOUT:DELEGATION:COMMON:END -->
 
 <!-- SCOUT:DELEGATION:MODE:hardwall:START -->
-Mode: **hardwall** (strict). Every code/doc search on the main thread - munch
-search/retrieval AND native Grep/Glob/search-Bash - is blocked by the guard. Your
-only search recourse is dispatching `search-scout` (or cause-directed
-re-dispatch). Index-management calls (reindex, register-edit) still work.
+Mode: **hardwall** (strict). You do NOT search code or docs yourself on the main
+thread. Every search - munch search/retrieval AND native Grep/Glob/search-Bash -
+is blocked by the guard, so your only search recourse is dispatching `search-scout`
+(or cause-directed re-dispatch). Index-management calls (reindex, register-edit)
+still work.
 <!-- SCOUT:DELEGATION:MODE:hardwall:END -->
 
 <!-- SCOUT:DELEGATION:MODE:fastpath:START -->
@@ -68,9 +70,11 @@ the default.
 <!-- SCOUT:DELEGATION:MODE:fastpath:END -->
 
 <!-- SCOUT:DELEGATION:MODE:nudge:START -->
-Mode: **nudge** (soft). Nothing is blocked, but the win still comes from
-delegation: hand multi-step retrieval to `search-scout` so the churn stays out of
-your context. Reach for it first; self-search only for a trivial single lookup.
+Mode: **nudge** (soft). Nothing is blocked - searching yourself is fine. The win
+still comes from delegation, so prefer handing multi-step retrieval to
+`search-scout` to keep the churn out of your context; reach for it on the big
+sweeps. For a trivial single lookup, searching directly is perfectly fine. Your
+call.
 <!-- SCOUT:DELEGATION:MODE:nudge:END -->
 
 <!-- SCOUT:SUBAGENT-ROUTING:START -->
