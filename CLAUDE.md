@@ -153,11 +153,11 @@ skill-only addition.
 
 ```
 # Install (one-time marketplace add per machine, then install):
-/plugin marketplace add C:/Git/MyCode/oleg-agent-skills      # or a git URL once pushed
+/plugin marketplace add https://github.com/okazakov/agent-skills.git   # or a local path to a clone
 /plugin install <plugin-name>@oleg-agent-skills
 
 # Live-test a plugin WITHOUT installing (references it in place, this session only):
-claude --plugin-dir C:/Git/MyCode/oleg-agent-skills/<plugin-name>
+claude --plugin-dir path/to/oleg-agent-skills/<plugin-name>   # a local path to your clone
 
 # Update flow (git pull alone does NOT update consumers - plugins are cached):
 #   1. edit files
