@@ -7,12 +7,12 @@ the home of the plugins themselves (one subdirectory per plugin).
 ## Use the marketplace
 
 ```
-/plugin marketplace add C:/Git/MyCode/oleg-agent-skills
+/plugin marketplace add https://github.com/okazakov/agent-skills.git
 /plugin install <plugin-name>@oleg-agent-skills
 ```
 
-`/plugin marketplace add` also accepts a git URL (e.g.
-`https://github.com/<you>/oleg-agent-skills.git`) once this is pushed to a remote.
+`/plugin marketplace add` also accepts a local filesystem path (e.g. a clone at
+`path/to/oleg-agent-skills`) instead of the git URL.
 
 ## Plugins
 

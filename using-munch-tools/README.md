@@ -44,7 +44,7 @@ username or path - it works on any machine after install.
 From any Claude Code session (the marketplace is the parent repo of this plugin):
 
 ```
-/plugin marketplace add C:/Git/MyCode/oleg-agent-skills
+/plugin marketplace add https://github.com/okazakov/agent-skills.git
 /plugin install using-munch-tools@oleg-agent-skills
 ```
 
@@ -68,8 +68,8 @@ Marketplace plugins are COPIED into a cache, so pulling the repo is not enough:
    `/plugin update using-munch-tools@oleg-agent-skills`.
 
 For live iteration without the cache, launch with `claude --plugin-dir
-C:/Git/MyCode/oleg-agent-skills/using-munch-tools` (references in place for that session
-only).
+path/to/oleg-agent-skills/using-munch-tools` (a local path to your clone, which
+references the plugin in place for that session only).
 
 ## Quiet marker
 

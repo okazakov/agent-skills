@@ -112,14 +112,14 @@ Open a new session afterward (hooks are picked up reliably only on restart).
 ## Install
 
 ```
-/plugin marketplace add C:/Git/MyCode/oleg-agent-skills
+/plugin marketplace add https://github.com/okazakov/agent-skills.git
 /plugin install munch-search-scout@oleg-agent-skills
 ```
 
 Live-test without installing (references the plugin in place for one session):
 
 ```
-claude --plugin-dir C:/Git/MyCode/oleg-agent-skills/munch-search-scout
+claude --plugin-dir path/to/oleg-agent-skills/munch-search-scout
 ```
 
 ## Updating (git pull does NOT auto-update)
