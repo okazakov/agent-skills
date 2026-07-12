@@ -18,6 +18,12 @@
       "source": "./munch-search-scout",
       "description": "Replaces using-munch-tools: forces the main agent to delegate code/doc search to a disposable search-scout subagent (conserving the main context window) via a nudge/fastpath/hardwall mode switch. Enable this OR using-munch-tools, never both.",
       "category": "development"
+    },
+    {
+      "name": "setup-issue-tracker",
+      "source": "./setup-issue-tracker",
+      "description": "Installs a local, markdown, status-board issue tracker into a repo: canonical tickets committed flat in docs/issues/, plus a gitignored, rebuildable board under docs/issue-tracker/ that hard-links each ticket into a phase folder by its Status: line.",
+      "category": "development"
     }
   ]
 }

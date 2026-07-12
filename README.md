@@ -19,6 +19,8 @@ the home of the plugins themselves (one subdirectory per plugin).
 | Plugin | What it does |
 |---|---|
 | `using-munch-tools` | Routes native code/doc search through jcodemunch / jdocmunch (SessionStart voice + PreToolUse guardrail, observe mode). See `using-munch-tools/README.md`. |
+| `munch-search-scout` | Replaces `using-munch-tools`: forces the main agent to delegate code/doc search to a disposable `search-scout` subagent (nudge/fastpath/hardwall mode switch). Enable this OR `using-munch-tools`, never both. See `munch-search-scout/README.md`. |
+| `setup-issue-tracker` | Installs a local markdown status-board issue tracker into a repo (committed tickets in `docs/issues/`, gitignored rebuildable board in `docs/issue-tracker/`). See `setup-issue-tracker/README.md`. |
 
 ## Repo layout
 

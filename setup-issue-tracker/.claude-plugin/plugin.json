@@ -1,0 +1,10 @@
+{
+  "name": "setup-issue-tracker",
+  "description": "Installs a local, markdown, status-board issue tracker into a repo: canonical tickets committed flat in docs/issues/, plus a gitignored, rebuildable board under docs/issue-tracker/ that hard-links each ticket into a phase folder by its Status: line.",
+  "version": "0.1.0",
+  "author": {
+    "name": "okazakov",
+    "email": "okazakov@gmail.com"
+  },
+  "license": "MIT"
+}
